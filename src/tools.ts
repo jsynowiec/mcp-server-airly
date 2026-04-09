@@ -80,8 +80,10 @@ function formatMeasurement(measurement: Measurement): string {
   if (current.indexes.length > 0) {
     for (const idx of current.indexes) {
       lines.push(`Air Quality Index (${idx.name}): ${idx.value} — ${idx.level}`);
-      if (idx.description) lines.push(`  ${idx.description}`);
-      if (idx.advice) lines.push(`  ${idx.advice}`);
+      if (idx.description || idx.advice) {
+        const advisory = [idx.description, idx.advice].filter(Boolean).join(' ');
+        lines.push(`  Advisory (human-readable message from Airly): ${advisory}`);
+      }
     }
     lines.push('');
   }
