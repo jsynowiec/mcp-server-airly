@@ -76,11 +76,11 @@ Default coordinates must be set together. When configured, location-based tools 
 
 ### get_measurement
 
-Get interpolated air quality measurements for any location. Returns current conditions (PM2.5, PM10, temperature, humidity, pressure), air quality index with health advice, and WHO standard compliance. Includes 24-hour history and forecast.
+Get interpolated air quality measurements for any location. Returns current pollutant concentrations, air quality index with health advice, and WHO standard compliance. Includes 24-hour history and forecast.
 
 ### get_nearest_installation
 
-Find the nearest air quality monitoring stations to a given location. Returns station metadata including address, coordinates, and distance.
+Find the nearest air quality monitoring stations to a given location, sorted by proximity. Returns station metadata including address, coordinates, and sensor type.
 
 ### get_installation_measurements
 
