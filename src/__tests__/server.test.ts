@@ -24,6 +24,8 @@ describe('MCP server wiring', () => {
     globalThis.fetch = mockFetchResponse({});
   });
 
+  const connections: { server: McpServer; client: Client }[] = [];
+
   afterEach(async () => {
     for (const { client, server } of connections) {
       await client.close();
@@ -32,8 +34,6 @@ describe('MCP server wiring', () => {
     connections.length = 0;
     globalThis.fetch = originalFetch;
   });
-
-  const connections: { server: McpServer; client: Client }[] = [];
 
   async function connectServer(options?: {
     defaultLatitude?: number;

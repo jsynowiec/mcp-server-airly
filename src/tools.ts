@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+// Inline `type` on AirlyClient because AirlyApiError needs a runtime import from the same module
 import { type AirlyClient, AirlyApiError } from './airly.js';
 import type {
   DefaultCoordinates,
@@ -179,18 +180,20 @@ export function registerTools(
   client: AirlyClient,
   defaultCoords?: DefaultCoordinates,
 ): void {
-  server.tool(
+  server.registerTool(
     'get_measurement',
-    'Get air quality measurement for a geographic point. Data is structured into three slices: "current" (last 60min moving average, up to 3h old for third-party stations), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours). Together, history and forecast form a continuous 48-hour sequence.',
     {
-      latitude: z.number().min(-90).max(90).optional().describe('Latitude in decimal degrees'),
-      longitude: z.number().min(-180).max(180).optional().describe('Longitude in decimal degrees'),
-      include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
-      indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
-      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
-      skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
+      description: 'Get air quality measurement for a geographic point. Data is structured into three slices: "current" (last 60min moving average, up to 3h old for third-party stations), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours). Together, history and forecast form a continuous 48-hour sequence.',
+      inputSchema: {
+        latitude: z.number().min(-90).max(90).optional().describe('Latitude in decimal degrees'),
+        longitude: z.number().min(-180).max(180).optional().describe('Longitude in decimal degrees'),
+        include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
+        indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
+        indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
+        skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    { readOnlyHint: true, openWorldHint: true },
     async (args) => {
       const coords = resolveCoordinates(args, defaultCoords);
       if (!coords) return missingCoordsError();
@@ -208,17 +211,19 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'get_nearest_installation',
-    'Find the nearest Airly air quality monitoring installations to a geographic point.',
     {
-      latitude: z.number().optional().describe('Latitude of the search center (-90 to 90)'),
-      longitude: z.number().optional().describe('Longitude of the search center (-180 to 180)'),
-      maxDistanceKM: z.number().default(3.0).describe('Maximum search radius in kilometers'),
-      maxResults: z.number().default(1).describe('Maximum number of installations to return'),
-      skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      description: 'Find the nearest Airly air quality monitoring installations to a geographic point.',
+      inputSchema: {
+        latitude: z.number().optional().describe('Latitude of the search center (-90 to 90)'),
+        longitude: z.number().optional().describe('Longitude of the search center (-180 to 180)'),
+        maxDistanceKM: z.number().default(3.0).describe('Maximum search radius in kilometers'),
+        maxResults: z.number().default(1).describe('Maximum number of installations to return'),
+        skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    { readOnlyHint: true, openWorldHint: true },
     async (args) => {
       const coords = resolveCoordinates(args, defaultCoords);
       if (!coords) return missingCoordsError();
@@ -236,17 +241,19 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'get_installation_measurements',
-    'Get air quality measurements for a specific Airly installation by its ID. Data is structured into three slices: "current" (last 60min moving average), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours).',
     {
-      installationId: z.number().describe('Airly installation ID'),
-      include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
-      indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
-      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
-      skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
+      description: 'Get air quality measurements for a specific Airly installation by its ID. Data is structured into three slices: "current" (last 60min moving average), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours).',
+      inputSchema: {
+        installationId: z.number().describe('Airly installation ID'),
+        include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
+        indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
+        indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
+        skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    { readOnlyHint: true, openWorldHint: false },
     async (args) => {
       try {
         const measurement = await client.getMeasurementInstallation(args.installationId, {
@@ -261,14 +268,16 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     'get_installation',
-    'Get metadata for a specific Airly installation by its ID, including address, coordinates, and sensor type.',
     {
-      installationId: z.number().describe('Airly installation ID'),
-      skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      description: 'Get metadata for a specific Airly installation by its ID, including address, coordinates, and sensor type.',
+      inputSchema: {
+        installationId: z.number().describe('Airly installation ID'),
+        skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    { readOnlyHint: true, openWorldHint: false },
     async (args) => {
       try {
         const installation = await client.getInstallation(args.installationId, {

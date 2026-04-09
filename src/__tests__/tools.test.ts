@@ -1,7 +1,7 @@
 // ABOUTME: Integration tests for MCP tool registration and execution.
 // ABOUTME: Uses InMemoryTransport to test tools through the MCP protocol.
 
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -90,6 +90,8 @@ function createMockAirlyClient(): AirlyClient {
   return client;
 }
 
+const connections: { mcpClient: Client; server: McpServer }[] = [];
+
 async function setupTestHarness(options?: {
   defaultCoords?: { latitude: number; longitude: number };
   airlyClient?: AirlyClient;
@@ -106,31 +108,28 @@ async function setupTestHarness(options?: {
   await server.connect(serverTransport);
   await mcpClient.connect(clientTransport);
 
+  connections.push({ mcpClient, server });
   return { server, mcpClient, airlyClient };
 }
 
 describe('registerTools', () => {
-  describe('tool listing', () => {
-    let mcpClient: Client;
-    let server: McpServer;
-
-    beforeAll(async () => {
-      const harness = await setupTestHarness();
-      mcpClient = harness.mcpClient;
-      server = harness.server;
-    });
-
-    afterAll(async () => {
+  afterEach(async () => {
+    for (const { mcpClient, server } of connections) {
       await mcpClient.close();
       await server.close();
-    });
+    }
+    connections.length = 0;
+  });
 
+  describe('tool listing', () => {
     it('registers exactly 4 tools', async () => {
+      const { mcpClient } = await setupTestHarness();
       const result = await mcpClient.listTools();
       expect(result.tools).toHaveLength(4);
     });
 
     it('registers tools with expected names', async () => {
+      const { mcpClient } = await setupTestHarness();
       const result = await mcpClient.listTools();
       const names = result.tools.map((t) => t.name).sort();
       expect(names).toEqual([
@@ -144,7 +143,7 @@ describe('registerTools', () => {
 
   describe('get_measurement', () => {
     it('returns formatted measurement text with lat/lng', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -159,14 +158,11 @@ describe('registerTools', () => {
       expect(text).toContain('LOW');
       expect(text).toContain('Good air.');
       expect(text).toContain('74.81%');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('falls back to default coordinates when lat/lng omitted', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({
+      const { mcpClient } = await setupTestHarness({
         defaultCoords: { latitude: 50.062, longitude: 19.941 },
         airlyClient,
       });
@@ -182,13 +178,10 @@ describe('registerTools', () => {
         19.941,
         expect.any(Object),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns isError when no coordinates and no defaults', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -198,14 +191,11 @@ describe('registerTools', () => {
       expect(result.isError).toBe(true);
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toMatch(/latitude|longitude|coordinates/i);
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('passes skipCache through to the client', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       await mcpClient.callTool({
         name: 'get_measurement',
@@ -217,13 +207,10 @@ describe('registerTools', () => {
         19.941,
         expect.objectContaining({ skipCache: true }),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('defaults to current slice only (no history/forecast)', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -235,13 +222,10 @@ describe('registerTools', () => {
       expect(text).toContain('AIRLY_CAQI');
       expect(text).not.toContain('History');
       expect(text).not.toContain('Forecast');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns only history when include is "history"', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -254,13 +238,10 @@ describe('registerTools', () => {
       expect(text).not.toContain('Forecast');
       expect(text).not.toContain('Current values');
       expect(text).not.toContain('Advisory');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns only forecast when include is "forecast"', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -273,13 +254,10 @@ describe('registerTools', () => {
       expect(text).not.toContain('History');
       expect(text).not.toContain('Current values');
       expect(text).not.toContain('Advisory');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns all slices when include is "all"', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -291,15 +269,12 @@ describe('registerTools', () => {
       expect(text).toContain('History');
       expect(text).toContain('Forecast');
       expect(text).toContain('Advisory');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
   describe('get_nearest_installation', () => {
     it('returns formatted installation list', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_nearest_installation',
@@ -311,14 +286,11 @@ describe('registerTools', () => {
       expect(text).toContain('204');
       expect(text).toContain('Kraków');
       expect(text).toContain('Mikołajska');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('falls back to default coordinates when lat/lng omitted', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({
+      const { mcpClient } = await setupTestHarness({
         defaultCoords: { latitude: 50.062, longitude: 19.941 },
         airlyClient,
       });
@@ -333,13 +305,10 @@ describe('registerTools', () => {
         19.941,
         expect.any(Object),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns isError when no coordinates and no defaults', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_nearest_installation',
@@ -347,14 +316,11 @@ describe('registerTools', () => {
       });
 
       expect(result.isError).toBe(true);
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('passes skipCache through to the client', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       await mcpClient.callTool({
         name: 'get_nearest_installation',
@@ -366,15 +332,12 @@ describe('registerTools', () => {
         19.941,
         expect.objectContaining({ skipCache: true }),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
   describe('get_installation_measurements', () => {
     it('returns formatted measurement text', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_installation_measurements',
@@ -386,14 +349,11 @@ describe('registerTools', () => {
       expect(text).toContain('PM25');
       expect(text).toContain('18.7');
       expect(text).toContain('AIRLY_CAQI');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('passes skipCache through to the client', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       await mcpClient.callTool({
         name: 'get_installation_measurements',
@@ -404,15 +364,12 @@ describe('registerTools', () => {
         204,
         expect.objectContaining({ skipCache: true }),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
   describe('get_installation', () => {
     it('returns installation metadata', async () => {
-      const { mcpClient, server } = await setupTestHarness();
+      const { mcpClient } = await setupTestHarness();
 
       const result = await mcpClient.callTool({
         name: 'get_installation',
@@ -426,14 +383,11 @@ describe('registerTools', () => {
       expect(text).toContain('Mikołajska');
       expect(text).toContain('220.38');
       expect(text).toMatch(/airly/i);
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('passes skipCache through to the client', async () => {
       const airlyClient = createMockAirlyClient();
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       await mcpClient.callTool({
         name: 'get_installation',
@@ -444,9 +398,6 @@ describe('registerTools', () => {
         204,
         expect.objectContaining({ skipCache: true }),
       );
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
@@ -465,7 +416,7 @@ describe('registerTools', () => {
       };
       const airlyClient = createMockAirlyClient();
       (airlyClient as Record<string, unknown>).getInstallation = vi.fn().mockResolvedValue(installationWithNulls);
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_installation',
@@ -478,9 +429,6 @@ describe('registerTools', () => {
       expect(text).not.toContain('Kraków');
       expect(text).not.toContain('Mikołajska');
       expect(text).not.toContain('null');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
@@ -499,7 +447,7 @@ describe('registerTools', () => {
       };
       const airlyClient = createMockAirlyClient();
       (airlyClient as Record<string, unknown>).getMeasurementPoint = vi.fn().mockResolvedValue(emptyMeasurement);
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -512,9 +460,6 @@ describe('registerTools', () => {
       expect(text).not.toContain('Current values');
       expect(text).not.toContain('Air Quality Index');
       expect(text).not.toContain('WHO standards');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
@@ -522,7 +467,7 @@ describe('registerTools', () => {
     it('returns "No installations found nearby." for empty results', async () => {
       const airlyClient = createMockAirlyClient();
       (airlyClient as Record<string, unknown>).getNearestInstallations = vi.fn().mockResolvedValue([]);
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_nearest_installation',
@@ -532,9 +477,6 @@ describe('registerTools', () => {
       expect(result.isError).toBeUndefined();
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('No installations found nearby.');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
@@ -546,7 +488,7 @@ describe('registerTools', () => {
       };
       const airlyClient = createMockAirlyClient();
       (airlyClient as Record<string, unknown>).getMeasurementPoint = vi.fn().mockResolvedValue(noHistoryMeasurement);
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -556,9 +498,6 @@ describe('registerTools', () => {
       expect(result.isError).toBeUndefined();
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toBe('No history data available.');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 
@@ -568,7 +507,7 @@ describe('registerTools', () => {
       (airlyClient as Record<string, unknown>).getInstallation = vi.fn().mockRejectedValue(
         new AirlyApiError(404, 'NOT_FOUND', 'Installation not found'),
       );
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_installation',
@@ -578,9 +517,6 @@ describe('registerTools', () => {
       expect(result.isError).toBe(true);
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('not found');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns isError with rate limit message on 429', async () => {
@@ -588,7 +524,7 @@ describe('registerTools', () => {
       (airlyClient as Record<string, unknown>).getMeasurementPoint = vi.fn().mockRejectedValue(
         new AirlyApiError(429, 'RATE_LIMIT_EXCEEDED', 'Too many requests'),
       );
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -598,9 +534,6 @@ describe('registerTools', () => {
       expect(result.isError).toBe(true);
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toMatch(/rate limit/i);
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns isError with details on 400', async () => {
@@ -612,7 +545,7 @@ describe('registerTools', () => {
           ],
         }),
       );
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_measurement',
@@ -622,9 +555,6 @@ describe('registerTools', () => {
       expect(result.isError).toBe(true);
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('latitude');
-
-      await mcpClient.close();
-      await server.close();
     });
 
     it('returns sanitized message for non-AirlyApiError exceptions', async () => {
@@ -632,7 +562,7 @@ describe('registerTools', () => {
       (airlyClient as Record<string, unknown>).getInstallation = vi.fn().mockRejectedValue(
         new Error('network timeout'),
       );
-      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+      const { mcpClient } = await setupTestHarness({ airlyClient });
 
       const result = await mcpClient.callTool({
         name: 'get_installation',
@@ -643,9 +573,6 @@ describe('registerTools', () => {
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toBe('Airly API call failed.');
       expect(text).not.toContain('network timeout');
-
-      await mcpClient.close();
-      await server.close();
     });
   });
 });

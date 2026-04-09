@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AirlyClient } from './airly.js';
 
 export function registerResources(server: McpServer, client: AirlyClient): void {
-  server.resource(
+  server.registerResource(
     'indexes',
     'airly://meta/indexes',
     { mimeType: 'application/json' },
@@ -18,7 +18,7 @@ export function registerResources(server: McpServer, client: AirlyClient): void 
     }),
   );
 
-  server.resource(
+  server.registerResource(
     'measurements',
     'airly://meta/measurements',
     { mimeType: 'application/json' },
@@ -31,7 +31,7 @@ export function registerResources(server: McpServer, client: AirlyClient): void 
     }),
   );
 
-  server.resource(
+  server.registerResource(
     'standards',
     'airly://meta/standards',
     { mimeType: 'application/json' },
