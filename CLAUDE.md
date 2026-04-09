@@ -19,4 +19,4 @@ Documented in [docs/adr/](docs/adr/README.md). When a significant architectural 
 
 - Mock `globalThis.fetch` in API client tests, `InMemoryTransport.createLinkedPair()` for tool/resource/prompt tests
 - No real API calls in tests (Airly free plan: 100 req/day)
-- `createServer()` in `src/index.ts` exists for test use — it wires everything without connecting a transport
+- `createServer()` in `src/server.ts` wires everything without connecting a transport — tests import it directly, `src/index.ts` is a pure CLI runner

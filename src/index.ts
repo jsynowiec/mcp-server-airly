@@ -1,46 +1,11 @@
 #!/usr/bin/env node
-// ABOUTME: MCP server entry point for Airly air quality data.
-// ABOUTME: Bootstraps the server, registers tools/resources/prompts, connects STDIO transport.
+// ABOUTME: CLI entry point for the Airly MCP server.
+// ABOUTME: Reads env vars, validates config, connects STDIO transport, and starts serving.
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { AirlyClient } from './airly.js';
-import { registerTools } from './tools.js';
-import { registerResources } from './resources.js';
-import { registerPrompts } from './prompts.js';
-import type { DefaultCoordinates } from './types.js';
+import { createServer } from './server.js';
 
 import pkg from '../package.json' with { type: 'json' };
-
-interface ServerConfig {
-  apiToken: string;
-  defaultLatitude?: number;
-  defaultLongitude?: number;
-  language?: string;
-}
-
-export function createServer(config: ServerConfig): McpServer {
-  const client = new AirlyClient(config.apiToken, { language: config.language ?? 'en' });
-
-  let defaultCoords: DefaultCoordinates | undefined;
-  if (config.defaultLatitude !== undefined && config.defaultLongitude !== undefined) {
-    defaultCoords = {
-      latitude: config.defaultLatitude,
-      longitude: config.defaultLongitude,
-    };
-  }
-
-  const server = new McpServer({
-    name: 'airly',
-    version: pkg.version,
-  });
-
-  registerTools(server, client, defaultCoords);
-  registerResources(server, client);
-  registerPrompts(server);
-
-  return server;
-}
 
 async function main() {
   const apiToken = process.env.AIRLY_API_TOKEN;
@@ -91,16 +56,7 @@ async function main() {
   console.error(`Airly MCP server v${pkg.version} running on stdio`);
 }
 
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-
-const isDirectRun =
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
-
-if (isDirectRun) {
-  main().catch((error) => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  });
-}
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
