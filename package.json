@@ -1,0 +1,52 @@
+{
+  "name": "@jsynowiec/mcp-server-airly",
+  "version": "0.1.0",
+  "description": "An MCP server for querying Airly air quality data",
+  "type": "module",
+  "bin": {
+    "mcp-server-airly": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev:test": "vitest",
+    "prepare": "husky",
+    "prepublishOnly": "bun run build && bun run lint && bun run typecheck && bun run test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "mcp",
+    "airly",
+    "air-quality",
+    "model-context-protocol"
+  ],
+  "author": "Jakub Synowiec",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsynowiec/mcp-server-airly.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "lru-cache": "^11.3.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
+    "eslint": "^10.2.0",
+    "husky": "^9.1.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.5.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.58.0",
+    "vitest": "^4.1.0"
+  }
+}

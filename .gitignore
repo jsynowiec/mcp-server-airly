@@ -1,0 +1,21 @@
+node_modules/
+dist/
+
+# Environment
+.env
+.env.*
+
+# Personal Claude Code settings and overrides
+.claude/settings.local.json
+.claude/plans/
+CLAUDE.local.md
+
+# Working documents (not tracked)
+docs/
+SPEC.md
+
+# Private journal
+.private-journal/
+
+# OS
+.DS_Store
