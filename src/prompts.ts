@@ -62,7 +62,7 @@ export function registerPrompts(
           content: {
             type: 'text' as const,
             text: [
-              `Call the get_measurement tool with latitude ${latitude} and longitude ${longitude}.`,
+              `Call the get_measurement tool with latitude ${latitude}, longitude ${longitude}, and include "forecast".`,
               'Then summarize the forecast for the user:',
               '- Summarize the forecast trend over the next 24 hours.',
               '- Flag any expected deterioration in air quality.',

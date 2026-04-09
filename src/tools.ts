@@ -13,6 +13,8 @@ import type {
 
 const INDEX_TYPE_ENUM = ['AIRLY_CAQI', 'CAQI', 'PIJP'] as const;
 const INDEX_POLLUTANT_ENUM = ['PM', 'PM10', 'PM25', 'O3', 'NO2', 'SO2', 'CO', 'ALL'] as const;
+const INCLUDE_ENUM = ['current', 'history', 'forecast', 'all'] as const;
+type IncludeSlice = (typeof INCLUDE_ENUM)[number];
 
 function resolveCoordinates(
   args: { latitude?: number; longitude?: number },
@@ -62,50 +64,55 @@ function handleApiError(error: unknown) {
   };
 }
 
-function formatMeasurement(measurement: Measurement): string {
+function formatMeasurement(measurement: Measurement, include: IncludeSlice = 'current'): string {
   const lines: string[] = [];
+  const showCurrent = include === 'current' || include === 'all';
+  const showHistory = include === 'history' || include === 'all';
+  const showForecast = include === 'forecast' || include === 'all';
   const { current } = measurement;
 
-  lines.push(`Measurement period: ${current.fromDateTime} — ${current.tillDateTime}`);
-  lines.push('');
-
-  if (current.values.length > 0) {
-    lines.push('Current values:');
-    for (const v of current.values) {
-      lines.push(`  ${v.name}: ${v.value} µg/m³`);
-    }
+  if (showCurrent) {
+    lines.push(`Measurement period: ${current.fromDateTime} — ${current.tillDateTime}`);
     lines.push('');
-  }
 
-  if (current.indexes.length > 0) {
-    for (const idx of current.indexes) {
-      lines.push(`Air Quality Index (${idx.name}): ${idx.value} — ${idx.level}`);
-      if (idx.description || idx.advice) {
-        const advisory = [idx.description, idx.advice].filter(Boolean).join(' ');
-        lines.push(`  Advisory (human-readable message from Airly): ${advisory}`);
+    if (current.values.length > 0) {
+      lines.push('Current values:');
+      for (const v of current.values) {
+        lines.push(`  ${v.name}: ${v.value} µg/m³`);
       }
+      lines.push('');
     }
-    lines.push('');
+
+    if (current.indexes.length > 0) {
+      for (const idx of current.indexes) {
+        lines.push(`Air Quality Index (${idx.name}): ${idx.value} — ${idx.level}`);
+        if (idx.description || idx.advice) {
+          const advisory = [idx.description, idx.advice].filter(Boolean).join(' ');
+          lines.push(`  Advisory (human-readable message from Airly): ${advisory}`);
+        }
+      }
+      lines.push('');
+    }
+
+    if (current.standards.length > 0) {
+      lines.push('WHO standards:');
+      for (const std of current.standards) {
+        lines.push(`  ${std.pollutant} at ${std.percent}% of ${std.name} limit (${std.limit} µg/m³)`);
+      }
+      lines.push('');
+    }
   }
 
-  if (current.standards.length > 0) {
-    lines.push('WHO standards:');
-    for (const std of current.standards) {
-      lines.push(`  ${std.pollutant} at ${std.percent}% of ${std.name} limit (${std.limit} µg/m³)`);
-    }
-    lines.push('');
-  }
-
-  if (measurement.history.length > 0) {
-    lines.push('History:');
+  if (showHistory && measurement.history.length > 0) {
+    lines.push('History (last 24 full hours, hourly averages):');
     for (const period of measurement.history) {
       lines.push(`  ${period.fromDateTime} — ${period.tillDateTime}: ${formatValuesCompact(period)}`);
     }
     lines.push('');
   }
 
-  if (measurement.forecast.length > 0) {
-    lines.push('Forecast:');
+  if (showForecast && measurement.forecast.length > 0) {
+    lines.push('Forecast (next 24 hours, hourly averages):');
     for (const period of measurement.forecast) {
       lines.push(`  ${period.fromDateTime} — ${period.tillDateTime}: ${formatValuesCompact(period)}`);
     }
@@ -147,13 +154,14 @@ export function registerTools(
 ): void {
   server.tool(
     'get_measurement',
-    'Get air quality measurement for a geographic point. Returns current pollutant values, air quality index, and WHO standard comparisons.',
+    'Get air quality measurement for a geographic point. Data is structured into three slices: "current" (last 60min moving average, up to 3h old for third-party stations), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours). Together, history and forecast form a continuous 48-hour sequence.',
     {
       latitude: z.number().optional().describe('Latitude of the measurement point (-90 to 90)'),
       longitude: z.number().optional().describe('Longitude of the measurement point (-180 to 180)'),
-      indexType: z.enum(INDEX_TYPE_ENUM).optional().describe('Air quality index type to use for the response'),
-      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).optional().describe('Pollutant to calculate the index for'),
-      skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
+      indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
+      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
+      skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
     },
     { readOnlyHint: true, openWorldHint: true },
     async (args) => {
@@ -166,7 +174,7 @@ export function registerTools(
           indexPollutant: args.indexPollutant,
           skipCache: args.skipCache,
         });
-        return { content: [{ type: 'text', text: formatMeasurement(measurement) }] };
+        return { content: [{ type: 'text', text: formatMeasurement(measurement, args.include) }] };
       } catch (error) {
         return handleApiError(error);
       }
@@ -179,8 +187,8 @@ export function registerTools(
     {
       latitude: z.number().optional().describe('Latitude of the search center (-90 to 90)'),
       longitude: z.number().optional().describe('Longitude of the search center (-180 to 180)'),
-      maxDistanceKM: z.number().optional().describe('Maximum search radius in kilometers'),
-      maxResults: z.number().optional().describe('Maximum number of installations to return (default: 3)'),
+      maxDistanceKM: z.number().default(3.0).describe('Maximum search radius in kilometers'),
+      maxResults: z.number().default(1).describe('Maximum number of installations to return'),
       skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
     },
     { readOnlyHint: true, openWorldHint: true },
@@ -203,12 +211,13 @@ export function registerTools(
 
   server.tool(
     'get_installation_measurements',
-    'Get air quality measurements for a specific Airly installation by its ID.',
+    'Get air quality measurements for a specific Airly installation by its ID. Data is structured into three slices: "current" (last 60min moving average), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours).',
     {
       installationId: z.number().describe('Airly installation ID'),
-      indexType: z.enum(INDEX_TYPE_ENUM).optional().describe('Air quality index type to use for the response'),
-      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).optional().describe('Pollutant to calculate the index for'),
-      skipCache: z.boolean().optional().describe('Bypass cache and fetch fresh data from the API'),
+      include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
+      indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
+      indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),
+      skipCache: z.boolean().optional().describe('Bypass the 15-minute cache and fetch fresh data'),
     },
     { readOnlyHint: true, openWorldHint: false },
     async (args) => {
@@ -218,7 +227,7 @@ export function registerTools(
           indexPollutant: args.indexPollutant,
           skipCache: args.skipCache,
         });
-        return { content: [{ type: 'text', text: formatMeasurement(measurement) }] };
+        return { content: [{ type: 'text', text: formatMeasurement(measurement, args.include) }] };
       } catch (error) {
         return handleApiError(error);
       }

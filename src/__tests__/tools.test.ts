@@ -221,6 +221,80 @@ describe('registerTools', () => {
       await mcpClient.close();
       await server.close();
     });
+
+    it('defaults to current slice only (no history/forecast)', async () => {
+      const { mcpClient, server } = await setupTestHarness();
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941 },
+      });
+
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('PM25');
+      expect(text).toContain('AIRLY_CAQI');
+      expect(text).not.toContain('History');
+      expect(text).not.toContain('Forecast');
+
+      await mcpClient.close();
+      await server.close();
+    });
+
+    it('returns only history when include is "history"', async () => {
+      const { mcpClient, server } = await setupTestHarness();
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941, include: 'history' },
+      });
+
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('History');
+      expect(text).toContain('15.2');
+      expect(text).not.toContain('Forecast');
+      expect(text).not.toContain('Current values');
+      expect(text).not.toContain('Advisory');
+
+      await mcpClient.close();
+      await server.close();
+    });
+
+    it('returns only forecast when include is "forecast"', async () => {
+      const { mcpClient, server } = await setupTestHarness();
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941, include: 'forecast' },
+      });
+
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Forecast');
+      expect(text).toContain('PM25: 20');
+      expect(text).not.toContain('History');
+      expect(text).not.toContain('Current values');
+      expect(text).not.toContain('Advisory');
+
+      await mcpClient.close();
+      await server.close();
+    });
+
+    it('returns all slices when include is "all"', async () => {
+      const { mcpClient, server } = await setupTestHarness();
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941, include: 'all' },
+      });
+
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Current values');
+      expect(text).toContain('History');
+      expect(text).toContain('Forecast');
+      expect(text).toContain('Advisory');
+
+      await mcpClient.close();
+      await server.close();
+    });
   });
 
   describe('get_nearest_installation', () => {

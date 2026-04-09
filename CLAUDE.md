@@ -3,7 +3,7 @@
 
 ## Architecture Decisions
 
-Documented in [docs/adr/](docs/adr/README.md). When a significant architectural decision is made with the user during a session, add a new ADR and update the index.
+Documented in [docs/adr/](docs/adr/README.md). When a significant architectural decision is made with the user during a session, add a new ADR and update the index. When a plan includes an ADR, it must be the first task executed so it guides the implementation.
 
 @docs/adr/README.md
 

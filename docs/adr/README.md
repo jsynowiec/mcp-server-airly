@@ -12,3 +12,4 @@
 | [0008](0008-response-formatting.md) | Structured text responses, not raw JSON passthrough |
 | [0009](0009-testing-strategy.md) | Mocked fetch and InMemoryTransport, no real API calls |
 | [0010](0010-runtime-and-tooling.md) | Bun primary, npx compatible, Node >= 22 |
+| [0012](0012-measurement-data-slicing.md) | Parameter-based data slicing with API-aligned defaults |
