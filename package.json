@@ -7,7 +7,8 @@
     "mcp-server-airly": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "scripts": {
     "build": "tsc",
@@ -32,6 +33,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jsynowiec/mcp-server-airly.git"
+  },
+  "homepage": "https://github.com/jsynowiec/mcp-server-airly#readme",
+  "bugs": {
+    "url": "https://github.com/jsynowiec/mcp-server-airly/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

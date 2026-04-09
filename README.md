@@ -146,6 +146,10 @@ The `prepublishOnly` script automatically runs build, lint, type-check, and test
 npm publish --access public
 ```
 
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or associated with [Airly](https://airly.org/) in any way. It is an independent, open-source integration built on the publicly available [Airly API](https://developer.airly.org/).
+
 ## License
 
 Released under the [MIT License][license].
