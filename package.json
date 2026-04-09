@@ -1,6 +1,6 @@
 {
   "name": "@jsynowiec/mcp-server-airly",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An MCP server for querying Airly air quality data",
   "type": "module",
   "bin": {
