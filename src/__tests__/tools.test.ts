@@ -450,6 +450,118 @@ describe('registerTools', () => {
     });
   });
 
+  describe('get_installation with null address fields', () => {
+    it('formats address correctly when city and street are null', async () => {
+      const installationWithNulls: Installation = {
+        ...mockInstallation,
+        address: {
+          country: 'Poland',
+          city: null,
+          street: null,
+          number: '4B',
+          displayAddress1: null,
+          displayAddress2: null,
+        },
+      };
+      const airlyClient = createMockAirlyClient();
+      (airlyClient as Record<string, unknown>).getInstallation = vi.fn().mockResolvedValue(installationWithNulls);
+      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+
+      const result = await mcpClient.callTool({
+        name: 'get_installation',
+        arguments: { installationId: 204 },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Address: 4B');
+      expect(text).not.toContain('Kraków');
+      expect(text).not.toContain('Mikołajska');
+      expect(text).not.toContain('null');
+
+      await mcpClient.close();
+      await server.close();
+    });
+  });
+
+  describe('get_measurement with empty arrays', () => {
+    it('handles empty values, indexes, and standards gracefully', async () => {
+      const emptyMeasurement: Measurement = {
+        current: {
+          fromDateTime: '2024-08-24T08:00:00.000Z',
+          tillDateTime: '2024-08-24T09:00:00.000Z',
+          values: [],
+          indexes: [],
+          standards: [],
+        },
+        history: [],
+        forecast: [],
+      };
+      const airlyClient = createMockAirlyClient();
+      (airlyClient as Record<string, unknown>).getMeasurementPoint = vi.fn().mockResolvedValue(emptyMeasurement);
+      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941 },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('Measurement period');
+      expect(text).not.toContain('Current values');
+      expect(text).not.toContain('Air Quality Index');
+      expect(text).not.toContain('WHO standards');
+
+      await mcpClient.close();
+      await server.close();
+    });
+  });
+
+  describe('get_nearest_installation with empty list', () => {
+    it('returns "No installations found nearby." for empty results', async () => {
+      const airlyClient = createMockAirlyClient();
+      (airlyClient as Record<string, unknown>).getNearestInstallations = vi.fn().mockResolvedValue([]);
+      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+
+      const result = await mcpClient.callTool({
+        name: 'get_nearest_installation',
+        arguments: { latitude: 50.062, longitude: 19.941 },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toContain('No installations found nearby.');
+
+      await mcpClient.close();
+      await server.close();
+    });
+  });
+
+  describe('get_measurement with empty history slice', () => {
+    it('returns "No history data available." when history is empty', async () => {
+      const noHistoryMeasurement: Measurement = {
+        ...mockMeasurement,
+        history: [],
+      };
+      const airlyClient = createMockAirlyClient();
+      (airlyClient as Record<string, unknown>).getMeasurementPoint = vi.fn().mockResolvedValue(noHistoryMeasurement);
+      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+
+      const result = await mcpClient.callTool({
+        name: 'get_measurement',
+        arguments: { latitude: 50.062, longitude: 19.941, include: 'history' },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toBe('No history data available.');
+
+      await mcpClient.close();
+      await server.close();
+    });
+  });
+
   describe('error handling', () => {
     it('returns isError on 404', async () => {
       const airlyClient = createMockAirlyClient();
@@ -510,6 +622,27 @@ describe('registerTools', () => {
       expect(result.isError).toBe(true);
       const text = (result.content as Array<{ type: string; text: string }>)[0].text;
       expect(text).toContain('latitude');
+
+      await mcpClient.close();
+      await server.close();
+    });
+
+    it('returns sanitized message for non-AirlyApiError exceptions', async () => {
+      const airlyClient = createMockAirlyClient();
+      (airlyClient as Record<string, unknown>).getInstallation = vi.fn().mockRejectedValue(
+        new Error('network timeout'),
+      );
+      const { mcpClient, server } = await setupTestHarness({ airlyClient });
+
+      const result = await mcpClient.callTool({
+        name: 'get_installation',
+        arguments: { installationId: 204 },
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{ type: string; text: string }>)[0].text;
+      expect(text).toBe('Airly API call failed.');
+      expect(text).not.toContain('network timeout');
 
       await mcpClient.close();
       await server.close();

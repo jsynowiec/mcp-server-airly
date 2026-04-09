@@ -37,7 +37,7 @@ export function createServer(config: ServerConfig): McpServer {
 
   registerTools(server, client, defaultCoords);
   registerResources(server, client);
-  registerPrompts(server, defaultCoords);
+  registerPrompts(server);
 
   return server;
 }
@@ -63,7 +63,20 @@ async function main() {
     process.exit(1);
   }
 
+  if (
+    (defaultLatitude !== undefined && !Number.isFinite(defaultLatitude)) ||
+    (defaultLongitude !== undefined && !Number.isFinite(defaultLongitude))
+  ) {
+    console.error('Error: AIRLY_DEFAULT_LATITUDE and AIRLY_DEFAULT_LONGITUDE must be valid numbers.');
+    process.exit(1);
+  }
+
+  const SUPPORTED_LANGUAGES = ['en', 'pl'];
   const language = process.env.AIRLY_LANGUAGE ?? 'en';
+  if (!SUPPORTED_LANGUAGES.includes(language)) {
+    console.error(`Error: AIRLY_LANGUAGE must be one of: ${SUPPORTED_LANGUAGES.join(', ')}`);
+    process.exit(1);
+  }
 
   const server = createServer({
     apiToken,
@@ -78,9 +91,12 @@ async function main() {
   console.error(`Airly MCP server v${pkg.version} running on stdio`);
 }
 
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 const isDirectRun =
   process.argv[1] &&
-  import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (isDirectRun) {
   main().catch((error) => {

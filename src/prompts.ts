@@ -3,7 +3,6 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { DefaultCoordinates } from './types.js';
 
 const COORDINATE_NOTE = [
   'IMPORTANT: The latitude and longitude values are WGS 84 decimal degrees.',
@@ -11,11 +10,7 @@ const COORDINATE_NOTE = [
   'approximate from your own knowledge, ask the user, or use an external geocoding tool.',
 ].join(' ');
 
-export function registerPrompts(
-  server: McpServer,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _defaultCoords?: DefaultCoordinates,
-): void {
+export function registerPrompts(server: McpServer): void {
   server.registerPrompt(
     'check_air_quality',
     {

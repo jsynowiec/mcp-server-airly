@@ -2,6 +2,7 @@
 // ABOUTME: Verifies all tools, resources, and prompts are registered correctly.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createServer } from '../index.js';
@@ -23,9 +24,16 @@ describe('MCP server wiring', () => {
     globalThis.fetch = mockFetchResponse({});
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    for (const { client, server } of connections) {
+      await client.close();
+      await server.close();
+    }
+    connections.length = 0;
     globalThis.fetch = originalFetch;
   });
+
+  const connections: { server: McpServer; client: Client }[] = [];
 
   async function connectServer(options?: {
     defaultLatitude?: number;
@@ -45,6 +53,7 @@ describe('MCP server wiring', () => {
     const client = new Client({ name: 'test-client', version: '1.0.0' });
     await client.connect(clientTransport);
 
+    connections.push({ server, client });
     return { server, client };
   }
 
@@ -88,18 +97,17 @@ describe('MCP server wiring', () => {
     ]);
   });
 
-  it('works with default coordinates', async () => {
+  it('creates server with all optional config', async () => {
     const { client } = await connectServer({
       defaultLatitude: 50.062,
       defaultLongitude: 19.941,
+      language: 'pl',
     });
     const { tools } = await client.listTools();
+    const { resources } = await client.listResources();
+    const { prompts } = await client.listPrompts();
     expect(tools).toHaveLength(4);
-  });
-
-  it('accepts custom language setting', async () => {
-    const { client } = await connectServer({ language: 'pl' });
-    const { tools } = await client.listTools();
-    expect(tools).toHaveLength(4);
+    expect(resources).toHaveLength(3);
+    expect(prompts).toHaveLength(3);
   });
 });

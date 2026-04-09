@@ -187,7 +187,16 @@ export class AirlyClient {
     const response = await fetch(url.toString(), { headers });
 
     if (!response.ok) {
-      const body = (await response.json()) as AirlyErrorResponse;
+      let body: AirlyErrorResponse;
+      try {
+        body = (await response.json()) as AirlyErrorResponse;
+      } catch {
+        throw new AirlyApiError(
+          response.status,
+          'UNKNOWN',
+          `Airly API returned HTTP ${response.status}`,
+        );
+      }
       throw new AirlyApiError(response.status, body.errorCode, body.message, body.details);
     }
 

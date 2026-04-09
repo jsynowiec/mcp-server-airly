@@ -2,8 +2,8 @@
 // ABOUTME: Registers 4 tools on an McpServer that delegate to an AirlyClient.
 
 import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { AirlyClient, AirlyApiError } from './airly.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { type AirlyClient, AirlyApiError } from './airly.js';
 import type {
   DefaultCoordinates,
   Installation,
@@ -15,6 +15,19 @@ const INDEX_TYPE_ENUM = ['AIRLY_CAQI', 'CAQI', 'PIJP'] as const;
 const INDEX_POLLUTANT_ENUM = ['PM', 'PM10', 'PM25', 'O3', 'NO2', 'SO2', 'CO', 'ALL'] as const;
 const INCLUDE_ENUM = ['current', 'history', 'forecast', 'all'] as const;
 type IncludeSlice = (typeof INCLUDE_ENUM)[number];
+
+const MEASUREMENT_UNITS: Record<string, string> = {
+  PM1: 'µg/m³',
+  PM25: 'µg/m³',
+  PM10: 'µg/m³',
+  O3: 'µg/m³',
+  NO2: 'µg/m³',
+  SO2: 'µg/m³',
+  CO: 'µg/m³',
+  TEMPERATURE: '°C',
+  HUMIDITY: '%',
+  PRESSURE: 'hPa',
+};
 
 function resolveCoordinates(
   args: { latitude?: number; longitude?: number },
@@ -57,9 +70,9 @@ function handleApiError(error: unknown) {
     };
   }
 
-  const msg = error instanceof Error ? error.message : String(error);
+  console.error('Airly API call failed with unexpected error:', error);
   return {
-    content: [{ type: 'text' as const, text: `Unexpected error: ${msg}` }],
+    content: [{ type: 'text' as const, text: 'Airly API call failed.' }],
     isError: true,
   };
 }
@@ -78,7 +91,8 @@ function formatMeasurement(measurement: Measurement, include: IncludeSlice = 'cu
     if (current.values.length > 0) {
       lines.push('Current values:');
       for (const v of current.values) {
-        lines.push(`  ${v.name}: ${v.value} µg/m³`);
+        const unit = MEASUREMENT_UNITS[v.name];
+        lines.push(`  ${v.name}: ${v.value}${unit ? ` ${unit}` : ''}`);
       }
       lines.push('');
     }
@@ -119,11 +133,24 @@ function formatMeasurement(measurement: Measurement, include: IncludeSlice = 'cu
     lines.push('');
   }
 
+  if (lines.length === 0) {
+    const sliceNames: Record<IncludeSlice, string> = {
+      current: 'current',
+      history: 'history',
+      forecast: 'forecast',
+      all: 'measurement',
+    };
+    return `No ${sliceNames[include]} data available.`;
+  }
+
   return lines.join('\n').trimEnd();
 }
 
 function formatValuesCompact(period: AveragedValues): string {
-  return period.values.map((v) => `${v.name}: ${v.value}`).join(', ');
+  return period.values.map((v) => {
+    const unit = MEASUREMENT_UNITS[v.name];
+    return `${v.name}: ${v.value}${unit ? ` ${unit}` : ''}`;
+  }).join(', ');
 }
 
 function formatInstallation(installation: Installation): string {
@@ -156,8 +183,8 @@ export function registerTools(
     'get_measurement',
     'Get air quality measurement for a geographic point. Data is structured into three slices: "current" (last 60min moving average, up to 3h old for third-party stations), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours). Together, history and forecast form a continuous 48-hour sequence.',
     {
-      latitude: z.number().optional().describe('Latitude of the measurement point (-90 to 90)'),
-      longitude: z.number().optional().describe('Longitude of the measurement point (-180 to 180)'),
+      latitude: z.number().min(-90).max(90).optional().describe('Latitude in decimal degrees'),
+      longitude: z.number().min(-180).max(180).optional().describe('Longitude in decimal degrees'),
       include: z.enum(INCLUDE_ENUM).default('current').describe('Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"'),
       indexType: z.enum(INDEX_TYPE_ENUM).default('AIRLY_CAQI').describe('Air quality index type'),
       indexPollutant: z.enum(INDEX_POLLUTANT_ENUM).default('PM').describe('Pollutant set for index calculation'),

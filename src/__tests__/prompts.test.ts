@@ -1,7 +1,7 @@
 // ABOUTME: Tests for MCP prompt registrations (air quality, forecast, nearest station).
 // ABOUTME: Uses InMemoryTransport with a real MCP Client to verify prompt metadata and messages.
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -22,14 +22,20 @@ async function createTestClient() {
     server.connect(serverTransport),
   ]);
 
-  return client;
+  return { client, server };
 }
 
 describe('registerPrompts', () => {
   let client: Client;
+  let server: McpServer;
 
   beforeAll(async () => {
-    client = await createTestClient();
+    ({ client, server } = await createTestClient());
+  });
+
+  afterAll(async () => {
+    await client.close();
+    await server.close();
   });
 
   describe('prompts/list', () => {
@@ -141,6 +147,17 @@ describe('registerPrompts', () => {
       expect(text.text).toContain('WGS 84');
       expect(text.text).toContain('distance');
       expect(text.text).toContain('address');
+    });
+
+    it('includes distance clause when maxDistanceKM is provided', async () => {
+      const result = await client.getPrompt({
+        name: 'find_nearest_station',
+        arguments: { latitude: '50.062', longitude: '19.941', maxDistanceKM: '5' },
+      });
+
+      expect(result.messages).toHaveLength(1);
+      const text = result.messages[0].content as { type: string; text: string };
+      expect(text.text).toContain('maximum search distance of 5 km');
     });
   });
 });

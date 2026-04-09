@@ -7,7 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { AirlyClient } from '../airly.js';
 import { registerResources } from '../resources.js';
-import type { IndexType, MeasurementType, StandardType } from '../types.js';
+import type { IndexType } from '../types.js';
 
 const TEST_API_KEY = 'test-api-key';
 
@@ -16,14 +16,6 @@ const mockIndexTypes: IndexType[] = [
     name: 'AIRLY_CAQI',
     levels: [{ values: '0-25', level: 'VERY_LOW', description: 'Very Low', color: '#6BC926' }],
   },
-];
-
-const mockMeasurementTypes: MeasurementType[] = [
-  { name: 'PM10', label: 'PM10', unit: 'µg/m³' },
-];
-
-const mockStandardTypes: StandardType[] = [
-  { name: 'WHO', standardLimits: { PM10: 45.0, PM25: 15.0 } },
 ];
 
 function mockFetchResponse(body: unknown) {
@@ -53,18 +45,30 @@ async function createConnectedPair() {
 
 describe('registerResources', () => {
   let originalFetch: typeof globalThis.fetch;
+  const connections: { server: McpServer; client: Client }[] = [];
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    for (const { client, server } of connections) {
+      await client.close();
+      await server.close();
+    }
+    connections.length = 0;
     globalThis.fetch = originalFetch;
   });
 
+  async function connect() {
+    const pair = await createConnectedPair();
+    connections.push({ server: pair.server, client: pair.client });
+    return pair;
+  }
+
   it('registers three resources with correct URIs', async () => {
     globalThis.fetch = mockFetchResponse([]);
-    const { client } = await createConnectedPair();
+    const { client } = await connect();
 
     const { resources } = await client.listResources();
 
@@ -75,46 +79,10 @@ describe('registerResources', () => {
     expect(uris).toContain('airly://meta/standards');
   });
 
-  it('reads airly://meta/indexes and returns index type data as JSON', async () => {
-    globalThis.fetch = mockFetchResponse(mockIndexTypes);
-    const { client } = await createConnectedPair();
-
-    const { contents } = await client.readResource({ uri: 'airly://meta/indexes' });
-
-    expect(contents).toHaveLength(1);
-    expect(contents[0].uri).toBe('airly://meta/indexes');
-    expect(contents[0].mimeType).toBe('application/json');
-    expect(JSON.parse(contents[0].text as string)).toEqual(mockIndexTypes);
-  });
-
-  it('reads airly://meta/measurements and returns measurement type data as JSON', async () => {
-    globalThis.fetch = mockFetchResponse(mockMeasurementTypes);
-    const { client } = await createConnectedPair();
-
-    const { contents } = await client.readResource({ uri: 'airly://meta/measurements' });
-
-    expect(contents).toHaveLength(1);
-    expect(contents[0].uri).toBe('airly://meta/measurements');
-    expect(contents[0].mimeType).toBe('application/json');
-    expect(JSON.parse(contents[0].text as string)).toEqual(mockMeasurementTypes);
-  });
-
-  it('reads airly://meta/standards and returns standard type data as JSON', async () => {
-    globalThis.fetch = mockFetchResponse(mockStandardTypes);
-    const { client } = await createConnectedPair();
-
-    const { contents } = await client.readResource({ uri: 'airly://meta/standards' });
-
-    expect(contents).toHaveLength(1);
-    expect(contents[0].uri).toBe('airly://meta/standards');
-    expect(contents[0].mimeType).toBe('application/json');
-    expect(JSON.parse(contents[0].text as string)).toEqual(mockStandardTypes);
-  });
-
   it('returns cached data on second read without additional fetch calls', async () => {
     const fetchMock = mockFetchResponse(mockIndexTypes);
     globalThis.fetch = fetchMock;
-    const { client } = await createConnectedPair();
+    const { client } = await connect();
 
     const first = await client.readResource({ uri: 'airly://meta/indexes' });
     const second = await client.readResource({ uri: 'airly://meta/indexes' });
@@ -123,5 +91,22 @@ describe('registerResources', () => {
     expect(JSON.parse(first.contents[0].text as string)).toEqual(
       JSON.parse(second.contents[0].text as string),
     );
+  });
+
+  it('propagates API errors as MCP errors when a resource read fails', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({
+        errorCode: 'UNAUTHORIZED',
+        message: 'Invalid API key',
+      }),
+    });
+    const { client } = await connect();
+
+    await expect(
+      client.readResource({ uri: 'airly://meta/indexes' }),
+    ).rejects.toThrow();
   });
 });

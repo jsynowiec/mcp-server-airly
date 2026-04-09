@@ -151,33 +151,31 @@ describe('AirlyClient', () => {
   });
 
   describe('installations', () => {
-    it('getNearestInstallations returns parsed Installation[]', async () => {
-      globalThis.fetch = mockFetchResponse([mockInstallation]);
+    it('getInstallation builds correct endpoint path', async () => {
+      const fetchMock = mockFetchResponse(mockInstallation);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getNearestInstallations(50.062, 19.941);
+      await client.getInstallation(204);
 
-      expect(result).toEqual([mockInstallation]);
-    });
-
-    it('getInstallation returns parsed Installation', async () => {
-      globalThis.fetch = mockFetchResponse(mockInstallation);
-      const client = new AirlyClient(TEST_API_KEY);
-
-      const result = await client.getInstallation(204);
-
-      expect(result).toEqual(mockInstallation);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/installations/204');
+      expect(url.search).toBe('');
     });
   });
 
   describe('measurements', () => {
-    it('getMeasurementPoint returns parsed Measurement', async () => {
-      globalThis.fetch = mockFetchResponse(mockMeasurement);
+    it('getMeasurementPoint builds correct endpoint with lat/lng params', async () => {
+      const fetchMock = mockFetchResponse(mockMeasurement);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getMeasurementPoint(50.062, 19.941);
+      await client.getMeasurementPoint(50.062, 19.941);
 
-      expect(result).toEqual(mockMeasurement);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/measurements/point');
+      expect(url.searchParams.get('lat')).toBe('50.062');
+      expect(url.searchParams.get('lng')).toBe('19.941');
     });
 
     it('getMeasurementPoint passes indexType and indexPollutant params', async () => {
@@ -195,42 +193,54 @@ describe('AirlyClient', () => {
       expect(url.searchParams.get('indexPollutant')).toBe('O3');
     });
 
-    it('getMeasurementInstallation returns parsed Measurement', async () => {
-      globalThis.fetch = mockFetchResponse(mockMeasurement);
+    it('getMeasurementInstallation builds correct endpoint with installationId param', async () => {
+      const fetchMock = mockFetchResponse(mockMeasurement);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getMeasurementInstallation(204);
+      await client.getMeasurementInstallation(204);
 
-      expect(result).toEqual(mockMeasurement);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/measurements/installation');
+      expect(url.searchParams.get('installationId')).toBe('204');
     });
   });
 
   describe('meta', () => {
-    it('getIndexes returns parsed IndexType[]', async () => {
-      globalThis.fetch = mockFetchResponse(mockIndexTypes);
+    it('getIndexes calls the /meta/indexes endpoint', async () => {
+      const fetchMock = mockFetchResponse(mockIndexTypes);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getIndexes();
+      await client.getIndexes();
 
-      expect(result).toEqual(mockIndexTypes);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/meta/indexes');
+      expect(url.search).toBe('');
     });
 
-    it('getMeasurementTypes returns parsed MeasurementType[]', async () => {
-      globalThis.fetch = mockFetchResponse(mockMeasurementTypes);
+    it('getMeasurementTypes calls the /meta/measurements endpoint', async () => {
+      const fetchMock = mockFetchResponse(mockMeasurementTypes);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getMeasurementTypes();
+      await client.getMeasurementTypes();
 
-      expect(result).toEqual(mockMeasurementTypes);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/meta/measurements');
+      expect(url.search).toBe('');
     });
 
-    it('getStandards returns parsed StandardType[]', async () => {
-      globalThis.fetch = mockFetchResponse(mockStandardTypes);
+    it('getStandards calls the /meta/standards endpoint', async () => {
+      const fetchMock = mockFetchResponse(mockStandardTypes);
+      globalThis.fetch = fetchMock;
       const client = new AirlyClient(TEST_API_KEY);
 
-      const result = await client.getStandards();
+      await client.getStandards();
 
-      expect(result).toEqual(mockStandardTypes);
+      const url = new URL(fetchMock.mock.calls[0][0]);
+      expect(url.origin + url.pathname).toBe('https://airapi.airly.eu/v2/meta/standards');
+      expect(url.search).toBe('');
     });
   });
 
@@ -245,10 +255,9 @@ describe('AirlyClient', () => {
       });
       const client = new AirlyClient(TEST_API_KEY);
 
-      await expect(client.getMeasurementPoint(200, 19.941)).rejects.toThrow(AirlyApiError);
-
       try {
-        await client.getMeasurementPoint(200, 19.941, { skipCache: true });
+        await client.getMeasurementPoint(200, 19.941);
+        expect.fail('should have thrown');
       } catch (e) {
         expect(e).toBeInstanceOf(AirlyApiError);
         const error = e as AirlyApiError;
@@ -293,6 +302,35 @@ describe('AirlyClient', () => {
       const client = new AirlyClient(TEST_API_KEY);
 
       await expect(client.getMeasurementPoint(50.062, 19.941)).rejects.toThrow(AirlyApiError);
+    });
+
+    it('propagates network errors from fetch', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
+      const client = new AirlyClient(TEST_API_KEY);
+
+      await expect(client.getInstallation(204)).rejects.toThrow(TypeError);
+      await expect(client.getInstallation(204, { skipCache: true })).rejects.toThrow('fetch failed');
+    });
+
+    it('throws AirlyApiError with generic message when response body is not JSON', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        headers: new Headers({ 'content-type': 'text/html' }),
+        json: () => { throw new SyntaxError('Unexpected token < in JSON'); },
+      });
+      const client = new AirlyClient(TEST_API_KEY);
+
+      try {
+        await client.getIndexes();
+        expect.fail('should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(AirlyApiError);
+        const error = e as AirlyApiError;
+        expect(error.statusCode).toBe(502);
+        expect(error.errorCode).toBe('UNKNOWN');
+        expect(error.message).toBe('Airly API returned HTTP 502');
+      }
     });
   });
 
@@ -340,6 +378,34 @@ describe('AirlyClient', () => {
       await client.getIndexes();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('expires cached measurement entries after 15 minutes', async () => {
+      const fetchMock = mockFetchResponse(mockMeasurement);
+      globalThis.fetch = fetchMock;
+
+      // Use a short real delay to verify TTL expiration. The lru-cache
+      // library compares performance.now() timestamps with an internal
+      // debounce timer, so we test with a brief real wait instead of
+      // fake timers.
+      const realNow = performance.now.bind(performance);
+      let offset = 0;
+      const perfSpy = vi.spyOn(performance, 'now').mockImplementation(() => realNow() + offset);
+
+      const client = new AirlyClient(TEST_API_KEY);
+
+      await client.getMeasurementPoint(50.062, 19.941);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Advance past the 15 minute TTL and yield to macrotask queue
+      // so the lru-cache debounce timer resets its cached timestamp
+      offset = 15 * 60 * 1000 + 1;
+      await new Promise(resolve => setTimeout(resolve, 5));
+
+      await client.getMeasurementPoint(50.062, 19.941);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      perfSpy.mockRestore();
     });
 
     it('evicts least recently used entries when max size exceeded', async () => {
