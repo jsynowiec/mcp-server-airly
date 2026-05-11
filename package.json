@@ -40,17 +40,17 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "lru-cache": "^11.3.0",
+    "lru-cache": "^11.3.6",
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "eslint": "^10.2.0",
+    "@types/node": "^25.6.2",
+    "eslint": "^10.3.0",
     "husky": "^9.1.0",
-    "jiti": "^2.6.1",
-    "prettier": "^3.5.0",
+    "jiti": "^2.7.0",
+    "prettier": "^3.8.3",
     "typescript": "^5.9.0",
-    "typescript-eslint": "^8.58.0",
-    "vitest": "^4.1.0"
+    "typescript-eslint": "^8.59.2",
+    "vitest": "^4.1.6"
   }
 }
