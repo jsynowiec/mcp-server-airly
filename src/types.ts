@@ -122,6 +122,7 @@ export type AirlyIndexPollutant = (typeof INDEX_POLLUTANT_ENUM)[number];
 export const INCLUDE_ENUM = ["current", "history", "forecast", "all"] as const;
 export type IncludeSlice = (typeof INCLUDE_ENUM)[number];
 
+// NOTE: Can become stale; New Airly measurement types will render without units
 export const MEASUREMENT_UNITS: Record<string, string> = {
   PM1: "µg/m³",
   PM25: "µg/m³",
