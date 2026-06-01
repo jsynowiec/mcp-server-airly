@@ -1,9 +1,6 @@
 // ABOUTME: MCP tool definitions for querying Airly air quality data.
 // ABOUTME: Registers 4 tools on an McpServer that delegate to an AirlyClient.
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-// Inline `type` on AirlyClient because AirlyApiError needs a runtime import from the same module
 import { type AirlyClient, AirlyApiError } from "#/airly.js";
 import type {
   AveragedValues,
@@ -18,6 +15,8 @@ import {
   INDEX_TYPE_ENUM,
   MEASUREMENT_UNITS,
 } from "#/types.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 const latitudeSchema = z
   .number()
