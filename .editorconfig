@@ -3,17 +3,9 @@ root = true
 [*]
 charset = utf-8
 end_of_line = lf
+insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.json]
+[*.{js,ts,json}]
 indent_size = 2
 indent_style = space
-
-[*.{ts}]
-indent_size = 2
-indent_style = space
-insert_final_newline = true
-
-[*.md]
-insert_final_newline = false
-trim_trailing_whitespace = false
