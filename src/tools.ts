@@ -19,6 +19,29 @@ import {
   MEASUREMENT_UNITS,
 } from "#/types.js";
 
+const latitudeSchema = z
+  .number()
+  .min(-90)
+  .max(90)
+  .describe("Latitude of the search center (-90 to 90)");
+const longitudeSchema = z
+  .number()
+  .min(-180)
+  .max(180)
+  .describe("Longitude of the search center (-180 to 180)");
+const indexTypeSchema = z
+  .enum(INDEX_TYPE_ENUM)
+  .default("AIRLY_CAQI")
+  .describe("Air quality index type");
+const indexPollutantSchema = z
+  .enum(INDEX_POLLUTANT_ENUM)
+  .default("PM")
+  .describe("Pollutant set for index calculation");
+const skipCacheSchema = z
+  .boolean()
+  .default(false)
+  .optional()
+  .describe("Bypass cache and fetch fresh data from the API");
 
 function resolveCoordinates(
   args: { latitude?: number; longitude?: number },
@@ -205,36 +228,17 @@ export function registerTools(
       description:
         'Get air quality measurement for a geographic point. Data is structured into three slices: "current" (last 60min moving average, up to 3h old for third-party stations), "history" (24 hourly averages for the last 24 full hours), and "forecast" (24 anticipated hourly averages for the next 24 hours). Together, history and forecast form a continuous 48-hour sequence.',
       inputSchema: {
-        latitude: z
-          .number()
-          .min(-90)
-          .max(90)
-          .optional()
-          .describe("Latitude in decimal degrees"),
-        longitude: z
-          .number()
-          .min(-180)
-          .max(180)
-          .optional()
-          .describe("Longitude in decimal degrees"),
+        latitude: latitudeSchema.optional(),
+        longitude: longitudeSchema.optional(),
         include: z
           .enum(INCLUDE_ENUM)
           .default("current")
           .describe(
             'Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"',
           ),
-        indexType: z
-          .enum(INDEX_TYPE_ENUM)
-          .default("AIRLY_CAQI")
-          .describe("Air quality index type"),
-        indexPollutant: z
-          .enum(INDEX_POLLUTANT_ENUM)
-          .default("PM")
-          .describe("Pollutant set for index calculation"),
-        skipCache: z
-          .boolean()
-          .optional()
-          .describe("Bypass the 15-minute cache and fetch fresh data"),
+        indexType: indexTypeSchema,
+        indexPollutant: indexPollutantSchema,
+        skipCache: skipCacheSchema,
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -272,14 +276,8 @@ export function registerTools(
       description:
         "Find the nearest Airly air quality monitoring installations to a geographic point.",
       inputSchema: {
-        latitude: z
-          .number()
-          .optional()
-          .describe("Latitude of the search center (-90 to 90)"),
-        longitude: z
-          .number()
-          .optional()
-          .describe("Longitude of the search center (-180 to 180)"),
+        latitude: latitudeSchema.optional(),
+        longitude: longitudeSchema.optional(),
         maxDistanceKM: z
           .number()
           .default(3.0)
@@ -288,10 +286,7 @@ export function registerTools(
           .number()
           .default(1)
           .describe("Maximum number of installations to return"),
-        skipCache: z
-          .boolean()
-          .optional()
-          .describe("Bypass cache and fetch fresh data from the API"),
+        skipCache: skipCacheSchema,
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -333,20 +328,11 @@ export function registerTools(
           .describe(
             'Data slice to return: "current" (last 60min average, default), "history" (24h hourly), "forecast" (next 24h hourly), or "all"',
           ),
-        indexType: z
-          .enum(INDEX_TYPE_ENUM)
-          .default("AIRLY_CAQI")
-          .describe("Air quality index type"),
-        indexPollutant: z
-          .enum(INDEX_POLLUTANT_ENUM)
-          .default("PM")
-          .describe("Pollutant set for index calculation"),
-        skipCache: z
-          .boolean()
-          .optional()
-          .describe("Bypass the 15-minute cache and fetch fresh data"),
+        indexType: indexTypeSchema,
+        indexPollutant: indexPollutantSchema,
+        skipCache: skipCacheSchema,
       },
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
       try {
@@ -379,12 +365,9 @@ export function registerTools(
         "Get metadata for a specific Airly installation by its ID, including address, coordinates, and sensor type.",
       inputSchema: {
         installationId: z.number().describe("Airly installation ID"),
-        skipCache: z
-          .boolean()
-          .optional()
-          .describe("Bypass cache and fetch fresh data from the API"),
+        skipCache: skipCacheSchema,
       },
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async (args) => {
       try {
