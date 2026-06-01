@@ -6,7 +6,7 @@ const envSchema = z
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    AIRLY_API_KEY: z.string(),
+    AIRLY_API_TOKEN: z.string(),
     AIRLY_LANGUAGE: z.enum(["en", "pl"]).default("en"),
     AIRLY_DEFAULT_LATITUDE: z.number().min(-90).max(90).optional(),
     AIRLY_DEFAULT_LONGITUDE: z.number().min(-180).max(180).optional(),

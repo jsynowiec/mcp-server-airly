@@ -10,7 +10,7 @@ import pkg from "../package.json" with { type: "json" };
 
 async function main() {
   const server = createServer({
-    apiToken: env.AIRLY_API_KEY,
+    apiToken: env.AIRLY_API_TOKEN,
     defaultLatitude: env.AIRLY_DEFAULT_LATITUDE,
     defaultLongitude: env.AIRLY_DEFAULT_LONGITUDE,
     language: env.AIRLY_LANGUAGE,
