@@ -12,14 +12,14 @@ import pkg from "../package.json" with { type: "json" };
 
 export interface ServerConfig {
   apiToken: string;
+  language: string;
   defaultLatitude?: number;
   defaultLongitude?: number;
-  language?: string;
 }
 
 export function createServer(config: ServerConfig): McpServer {
   const client = new AirlyClient(config.apiToken, {
-    language: config.language ?? "en",
+    language: config.language,
   });
 
   let defaultCoords: DefaultCoordinates | undefined;
@@ -34,7 +34,7 @@ export function createServer(config: ServerConfig): McpServer {
   }
 
   const server = new McpServer({
-    name: "airly",
+    name: pkg.name,
     version: pkg.version,
   });
 

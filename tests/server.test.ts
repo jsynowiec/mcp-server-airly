@@ -7,6 +7,8 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import pkg from "../package.json" with { type: "json" };
+
 function mockFetchResponse(body: unknown) {
   return vi.fn().mockResolvedValue({
     ok: true,
@@ -61,7 +63,8 @@ describe("MCP server wiring", () => {
   it("exposes correct server name and version", async () => {
     const { client } = await connectServer();
     const info = client.getServerVersion();
-    expect(info?.name).toBe("airly");
+    expect(info?.name).toBe(pkg.name);
+    expect(info?.version).toBe(pkg.version);
   });
 
   it("registers all 4 tools", async () => {
