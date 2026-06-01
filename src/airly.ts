@@ -52,7 +52,7 @@ export class AirlyClient {
   private readonly apiToken: string;
   private readonly language: string;
   private readonly cache: LRUCache<string, object>;
-  private readonly metaCache: LRUCache<string, object>;
+  private readonly metaCache: Map<string, object>;
 
   constructor(apiToken: string, options?: { language?: string }) {
     this.apiToken = apiToken;
@@ -61,9 +61,7 @@ export class AirlyClient {
       max: CACHE_MAX_ENTRIES,
       ttl: CACHE_TTL_MS,
     });
-    this.metaCache = new LRUCache<string, object>({
-      max: 10,
-    });
+    this.metaCache = new Map<string, object>();
   }
 
   async getNearestInstallations(

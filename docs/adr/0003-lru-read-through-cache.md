@@ -6,10 +6,9 @@ The Airly free plan allows 100 API requests per day. Without caching, an LLM cou
 
 ## Decision
 
-Use `lru-cache` with two instances:
+Use `lru-cache` for **Data cache** — max 100 entries, 15-minute TTL. Cache keys are `path + sorted query params` with coordinates rounded to 4 decimal places (~11m precision, sufficient for data interpolated from sensors up to 1.5km away).
 
-1. **Data cache** — max 100 entries, 15-minute TTL. Cache keys are `path + sorted query params` with coordinates rounded to 4 decimal places (~11m precision, sufficient for data interpolated from sensors up to 1.5km away).
-2. **Meta cache** — max 10 entries, no TTL. For `/v2/meta/*` endpoints that rarely change.
+Use `Map` for **Meta cache** — max 10 entries, no TTL. For `/v2/meta/*` endpoints that rarely change.
 
 All tools expose `skipCache: boolean` (default `false`) so the LLM can force a fresh reading.
 
