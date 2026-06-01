@@ -16,6 +16,7 @@ import { LRUCache } from "lru-cache";
 const BASE_URL = "https://airapi.airly.eu/v2";
 const CACHE_MAX_ENTRIES = 100;
 const CACHE_TTL_MS = 15 * 60 * 1000;
+const REQUEST_TIMEOUT = 10_000;
 
 export class AirlyApiError extends Error {
   readonly statusCode: number;
@@ -206,7 +207,10 @@ export class AirlyClient {
       "Accept-Language": this.language,
     });
 
-    const response = await fetch(url.toString(), { headers });
+    const response = await fetch(url.toString(), {
+      headers,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+    });
 
     if (!response.ok) {
       let body: AirlyErrorResponse;
