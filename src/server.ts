@@ -5,7 +5,7 @@ import { AirlyClient } from "#/airly.js";
 import { registerPrompts } from "#/prompts.js";
 import { registerResources } from "#/resources.js";
 import { registerTools } from "#/tools.js";
-import type { DefaultCoordinates } from "#/types.js";
+import type { Location } from "#/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import pkg from "../package.json" with { type: "json" };
@@ -22,7 +22,7 @@ export function createServer(config: ServerConfig): McpServer {
     language: config.language,
   });
 
-  let defaultCoords: DefaultCoordinates | undefined;
+  let defaultCoords: Location | undefined;
   if (
     config.defaultLatitude !== undefined &&
     config.defaultLongitude !== undefined

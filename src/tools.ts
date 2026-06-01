@@ -7,8 +7,9 @@ import { z } from "zod";
 import { type AirlyClient, AirlyApiError } from "#/airly.js";
 import type {
   AveragedValues,
-  DefaultCoordinates,
+  IncludeSlice,
   Installation,
+  Location,
   Measurement,
 } from "#/types.js";
 
@@ -41,7 +42,7 @@ const MEASUREMENT_UNITS: Record<string, string> = {
 
 function resolveCoordinates(
   args: { latitude?: number; longitude?: number },
-  defaultCoords?: DefaultCoordinates,
+  defaultCoords?: Location,
 ): { latitude: number; longitude: number } | null {
   if (args.latitude !== undefined && args.longitude !== undefined) {
     return { latitude: args.latitude, longitude: args.longitude };
@@ -216,7 +217,7 @@ function formatInstallationList(installations: Installation[]): string {
 export function registerTools(
   server: McpServer,
   client: AirlyClient,
-  defaultCoords?: DefaultCoordinates,
+  defaultCoords?: Location,
 ): void {
   server.registerTool(
     "get_measurement",
