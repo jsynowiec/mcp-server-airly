@@ -63,12 +63,12 @@ Build the project first, then point your MCP client at the local build output:
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `AIRLY_API_TOKEN` | Yes | | Airly API key |
-| `AIRLY_DEFAULT_LATITUDE` | No | | Default latitude (decimal degrees) |
-| `AIRLY_DEFAULT_LONGITUDE` | No | | Default longitude (decimal degrees) |
-| `AIRLY_LANGUAGE` | No | `en` | Response language (`en` or `pl`) |
+| Variable                  | Required | Default | Description                         |
+| ------------------------- | -------- | ------- | ----------------------------------- |
+| `AIRLY_API_TOKEN`         | Yes      |         | Airly API key                       |
+| `AIRLY_DEFAULT_LATITUDE`  | No       |         | Default latitude (decimal degrees)  |
+| `AIRLY_DEFAULT_LONGITUDE` | No       |         | Default longitude (decimal degrees) |
+| `AIRLY_LANGUAGE`          | No       | `en`    | Response language (`en` or `pl`)    |
 
 Default coordinates must be set together. When configured, location-based tools use them as a fallback when the LLM doesn't provide coordinates.
 
@@ -92,21 +92,21 @@ Get metadata for a specific monitoring station.
 
 ## Resources
 
-| URI | Description |
-|---|---|
-| `airly://meta/indexes` | Air quality index types and level definitions |
-| `airly://meta/measurements` | Measurement types with labels and units |
-| `airly://meta/standards` | Air quality standards and pollutant limits |
+| URI                         | Description                                   |
+| --------------------------- | --------------------------------------------- |
+| `airly://meta/indexes`      | Air quality index types and level definitions |
+| `airly://meta/measurements` | Measurement types with labels and units       |
+| `airly://meta/standards`    | Air quality standards and pollutant limits    |
 
 Resources are cached for the session lifetime.
 
 ## Prompts
 
-| Prompt | Description |
-|---|---|
-| `check_air_quality` | Check current air quality at a location |
-| `air_quality_forecast` | Get the 24-hour air quality forecast |
-| `find_nearest_station` | Find nearby monitoring stations |
+| Prompt                 | Description                             |
+| ---------------------- | --------------------------------------- |
+| `check_air_quality`    | Check current air quality at a location |
+| `air_quality_forecast` | Get the 24-hour air quality forecast    |
+| `find_nearest_station` | Find nearby monitoring stations         |
 
 ## Development
 
@@ -128,6 +128,8 @@ bun run build
 bun run build       # Compile TypeScript
 bun run lint        # Run ESLint
 bun run typecheck   # Type-check without emitting
+bun run fmtcheck    # Check Prettier formatting
+bun run format      # Apply Prettier formatting
 bun run test        # Run tests
 bun run dev:test    # Run tests in watch mode
 ```

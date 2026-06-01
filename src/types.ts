@@ -104,17 +104,17 @@ export interface AirlyErrorResponse {
   };
 }
 
-export type AirlyIndexType = 'AIRLY_CAQI' | 'CAQI' | 'PIJP';
+export type AirlyIndexType = "AIRLY_CAQI" | "CAQI" | "PIJP";
 
 export type AirlyIndexPollutant =
-  | 'PM'
-  | 'PM10'
-  | 'PM25'
-  | 'O3'
-  | 'NO2'
-  | 'SO2'
-  | 'CO'
-  | 'ALL';
+  | "PM"
+  | "PM10"
+  | "PM25"
+  | "O3"
+  | "NO2"
+  | "SO2"
+  | "CO"
+  | "ALL";
 
 export interface DefaultCoordinates {
   latitude: number;

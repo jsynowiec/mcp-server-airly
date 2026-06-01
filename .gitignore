@@ -1,3 +1,10 @@
+*.local.*
+.claude/plans/
+
+# Worktrees (native and fallback paths)
+.claude/worktrees/
+.worktrees/
+
 node_modules/
 dist/
 
@@ -5,16 +12,10 @@ dist/
 .env
 .env.*
 
-# Personal Claude Code settings and overrides
-.claude/settings.local.json
-.claude/plans/
-CLAUDE.local.md
+# Bun
+.bun-cache/
 
-# Working documents (not tracked)
-docs/superpowers/
-
-# Private journal
-.private-journal/
-
-# OS
+# Editor / OS
 .DS_Store
+.vscode/
+.idea/

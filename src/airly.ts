@@ -1,31 +1,38 @@
 // ABOUTME: Airly REST API v2 client with LRU read-through cache.
 // ABOUTME: Handles auth, request building, error mapping, and rate limit tracking.
 
-import { LRUCache } from 'lru-cache';
 import type {
+  AirlyErrorResponse,
+  AirlyIndexPollutant,
+  AirlyIndexType,
+  IndexType,
   Installation,
   Measurement,
-  IndexType,
   MeasurementType,
   StandardType,
-  AirlyErrorResponse,
-  AirlyIndexType,
-  AirlyIndexPollutant,
-} from './types.js';
+} from "#/types.js";
+import { LRUCache } from "lru-cache";
 
-const BASE_URL = 'https://airapi.airly.eu/v2';
+const BASE_URL = "https://airapi.airly.eu/v2";
 const CACHE_MAX_ENTRIES = 100;
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
 export class AirlyApiError extends Error {
+  readonly statusCode: number;
+  readonly errorCode: string;
+  readonly details?: AirlyErrorResponse["details"];
+
   constructor(
-    public readonly statusCode: number,
-    public readonly errorCode: string,
+    statusCode: number,
+    errorCode: string,
     message: string,
-    public readonly details?: AirlyErrorResponse['details'],
+    details?: AirlyErrorResponse["details"],
   ) {
     super(message);
-    this.name = 'AirlyApiError';
+    this.name = "AirlyApiError";
+    this.statusCode = statusCode;
+    this.errorCode = errorCode;
+    this.details = details;
   }
 }
 
@@ -49,7 +56,7 @@ export class AirlyClient {
 
   constructor(apiToken: string, options?: { language?: string }) {
     this.apiToken = apiToken;
-    this.language = options?.language ?? 'en';
+    this.language = options?.language ?? "en";
     this.cache = new LRUCache<string, object>({
       max: CACHE_MAX_ENTRIES,
       ttl: CACHE_TTL_MS,
@@ -68,19 +75,28 @@ export class AirlyClient {
       lat: String(lat),
       lng: String(lng),
     };
-    if (options?.maxDistanceKM !== undefined) params.maxDistanceKM = String(options.maxDistanceKM);
-    if (options?.maxResults !== undefined) params.maxResults = String(options.maxResults);
+    if (options?.maxDistanceKM !== undefined)
+      params.maxDistanceKM = String(options.maxDistanceKM);
+    if (options?.maxResults !== undefined)
+      params.maxResults = String(options.maxResults);
 
-    return this.request<Installation[]>('/installations/nearest', params, {
+    return this.request<Installation[]>("/installations/nearest", params, {
       skipCache: options?.skipCache,
       roundCoords: { lat, lng },
     });
   }
 
-  async getInstallation(installationId: number, options?: { skipCache?: boolean }): Promise<Installation> {
-    return this.request<Installation>(`/installations/${installationId}`, undefined, {
-      skipCache: options?.skipCache,
-    });
+  async getInstallation(
+    installationId: number,
+    options?: { skipCache?: boolean },
+  ): Promise<Installation> {
+    return this.request<Installation>(
+      `/installations/${installationId}`,
+      undefined,
+      {
+        skipCache: options?.skipCache,
+      },
+    );
   }
 
   async getMeasurementPoint(
@@ -95,7 +111,7 @@ export class AirlyClient {
     if (options?.indexType) params.indexType = options.indexType;
     if (options?.indexPollutant) params.indexPollutant = options.indexPollutant;
 
-    return this.request<Measurement>('/measurements/point', params, {
+    return this.request<Measurement>("/measurements/point", params, {
       skipCache: options?.skipCache,
       roundCoords: { lat, lng },
     });
@@ -111,21 +127,21 @@ export class AirlyClient {
     if (options?.indexType) params.indexType = options.indexType;
     if (options?.indexPollutant) params.indexPollutant = options.indexPollutant;
 
-    return this.request<Measurement>('/measurements/installation', params, {
+    return this.request<Measurement>("/measurements/installation", params, {
       skipCache: options?.skipCache,
     });
   }
 
   async getIndexes(): Promise<IndexType[]> {
-    return this.requestMeta<IndexType[]>('/meta/indexes');
+    return this.requestMeta<IndexType[]>("/meta/indexes");
   }
 
   async getMeasurementTypes(): Promise<MeasurementType[]> {
-    return this.requestMeta<MeasurementType[]>('/meta/measurements');
+    return this.requestMeta<MeasurementType[]>("/meta/measurements");
   }
 
   async getStandards(): Promise<StandardType[]> {
-    return this.requestMeta<StandardType[]>('/meta/standards');
+    return this.requestMeta<StandardType[]>("/meta/standards");
   }
 
   private buildCacheKey(
@@ -140,14 +156,19 @@ export class AirlyClient {
       normalizedParams.lng = roundCoords.lng.toFixed(4);
     }
 
-    const sortedEntries = Object.entries(normalizedParams).sort(([a], [b]) => a.localeCompare(b));
-    return `${path}?${sortedEntries.map(([k, v]) => `${k}=${v}`).join('&')}`;
+    const sortedEntries = Object.entries(normalizedParams).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    return `${path}?${sortedEntries.map(([k, v]) => `${k}=${v}`).join("&")}`;
   }
 
   private async request<T>(
     path: string,
     params?: Record<string, string>,
-    options?: { skipCache?: boolean; roundCoords?: { lat: number; lng: number } },
+    options?: {
+      skipCache?: boolean;
+      roundCoords?: { lat: number; lng: number };
+    },
   ): Promise<T> {
     const cacheKey = this.buildCacheKey(path, params, options?.roundCoords);
 
@@ -170,7 +191,10 @@ export class AirlyClient {
     return result;
   }
 
-  private async fetchFromApi<T>(path: string, params?: Record<string, string>): Promise<T> {
+  private async fetchFromApi<T>(
+    path: string,
+    params?: Record<string, string>,
+  ): Promise<T> {
     const url = new URL(`${BASE_URL}${path}`);
     if (params) {
       for (const [key, value] of Object.entries(params)) {
@@ -180,8 +204,8 @@ export class AirlyClient {
 
     const headers = new Headers({
       apikey: this.apiToken,
-      Accept: 'application/json',
-      'Accept-Language': this.language,
+      Accept: "application/json",
+      "Accept-Language": this.language,
     });
 
     const response = await fetch(url.toString(), { headers });
@@ -193,11 +217,16 @@ export class AirlyClient {
       } catch {
         throw new AirlyApiError(
           response.status,
-          'UNKNOWN',
+          "UNKNOWN",
           `Airly API returned HTTP ${response.status}`,
         );
       }
-      throw new AirlyApiError(response.status, body.errorCode, body.message, body.details);
+      throw new AirlyApiError(
+        response.status,
+        body.errorCode,
+        body.message,
+        body.details,
+      );
     }
 
     return (await response.json()) as T;
