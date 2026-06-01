@@ -37,16 +37,18 @@ export class AirlyApiError extends Error {
   }
 }
 
-interface MeasurementOptions {
-  indexType?: AirlyIndexType;
-  indexPollutant?: AirlyIndexPollutant;
+interface CacheableOptions {
   skipCache?: boolean;
 }
 
-interface NearestOptions {
+interface MeasurementOptions extends CacheableOptions {
+  indexType?: AirlyIndexType;
+  indexPollutant?: AirlyIndexPollutant;
+}
+
+interface NearestOptions extends CacheableOptions {
   maxDistanceKM?: number;
   maxResults?: number;
-  skipCache?: boolean;
 }
 
 export class AirlyClient {
