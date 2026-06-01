@@ -12,33 +12,13 @@ import type {
   Location,
   Measurement,
 } from "#/types.js";
+import {
+  INCLUDE_ENUM,
+  INDEX_POLLUTANT_ENUM,
+  INDEX_TYPE_ENUM,
+  MEASUREMENT_UNITS,
+} from "#/types.js";
 
-const INDEX_TYPE_ENUM = ["AIRLY_CAQI", "CAQI", "PIJP"] as const;
-const INDEX_POLLUTANT_ENUM = [
-  "PM",
-  "PM10",
-  "PM25",
-  "O3",
-  "NO2",
-  "SO2",
-  "CO",
-  "ALL",
-] as const;
-const INCLUDE_ENUM = ["current", "history", "forecast", "all"] as const;
-type IncludeSlice = (typeof INCLUDE_ENUM)[number];
-
-const MEASUREMENT_UNITS: Record<string, string> = {
-  PM1: "µg/m³",
-  PM25: "µg/m³",
-  PM10: "µg/m³",
-  O3: "µg/m³",
-  NO2: "µg/m³",
-  SO2: "µg/m³",
-  CO: "µg/m³",
-  TEMPERATURE: "°C",
-  HUMIDITY: "%",
-  PRESSURE: "hPa",
-};
 
 function resolveCoordinates(
   args: { latitude?: number; longitude?: number },

@@ -104,19 +104,33 @@ export interface AirlyErrorResponse {
   };
 }
 
-export type AirlyIndexType = "AIRLY_CAQI" | "CAQI" | "PIJP";
+export const INDEX_TYPE_ENUM = ["AIRLY_CAQI", "CAQI", "PIJP"] as const;
+export type AirlyIndexType = (typeof INDEX_TYPE_ENUM)[number];
 
-export type AirlyIndexPollutant =
-  | "PM"
-  | "PM10"
-  | "PM25"
-  | "O3"
-  | "NO2"
-  | "SO2"
-  | "CO"
-  | "ALL";
+export const INDEX_POLLUTANT_ENUM = [
+  "PM",
+  "PM10",
+  "PM25",
+  "O3",
+  "NO2",
+  "SO2",
+  "CO",
+  "ALL",
+] as const;
+export type AirlyIndexPollutant = (typeof INDEX_POLLUTANT_ENUM)[number];
 
-export interface DefaultCoordinates {
-  latitude: number;
-  longitude: number;
-}
+export const INCLUDE_ENUM = ["current", "history", "forecast", "all"] as const;
+export type IncludeSlice = (typeof INCLUDE_ENUM)[number];
+
+export const MEASUREMENT_UNITS: Record<string, string> = {
+  PM1: "µg/m³",
+  PM25: "µg/m³",
+  PM10: "µg/m³",
+  O3: "µg/m³",
+  NO2: "µg/m³",
+  SO2: "µg/m³",
+  CO: "µg/m³",
+  TEMPERATURE: "°C",
+  HUMIDITY: "%",
+  PRESSURE: "hPa",
+};
