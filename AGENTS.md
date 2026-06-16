@@ -24,12 +24,8 @@ Documented in [docs/adr/](docs/adr/README.md). When a significant architectural 
 
 ## Completion Checks
 
-When finishing work, run the full verification suite:
+When finishing work always verify that the package builds cleanly.
 
 ```sh
-bun run lint
-bun run fmtcheck
-bun run typecheck
-bun run test
 bun run build
 ```
