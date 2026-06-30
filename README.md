@@ -2,6 +2,9 @@
 
 [![Sponsor][sponsor-badge]][sponsor]
 [![License][license-badge]][license]
+![NPM Version][npm-version]
+![NPM Downloads][npm-downloads]
+[![Socket][socket-badge]][socket-url]
 
 An MCP server that integrates the [Airly API](https://github.com/airly-eu/api-docs), enabling natural language interaction with air quality data. Query real-time measurements, find nearby stations, and get air quality forecasts through any MCP-compatible client.
 
@@ -160,3 +163,7 @@ Released under the [MIT License][license].
 [license]: https://github.com/jsynowiec/mcp-server-airly/blob/master/LICENSE
 [sponsor-badge]: https://img.shields.io/badge/♥-Sponsor-fc0fb5.svg
 [sponsor]: https://github.com/sponsors/jsynowiec
+[npm-version]: https://img.shields.io/npm/v/@jsynowiec/mcp-server-airly
+[npm-downloads]: https://img.shields.io/npm/dm/@jsynowiec/mcp-server-airly
+[socket-badge]: https://badge.socket.dev/npm/package/@jsynowiec/mcp-server-airly
+[socket-url]: https://socket.dev/npm/package/@jsynowiec/mcp-server-airly/overview
